@@ -111,11 +111,11 @@ const PopUp: React.FC<PopUpProps> = ({ open, onClose }) => {
   };
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      fullWidth 
-      maxWidth="sm" 
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="sm"
       sx={{ borderRadius: "16px", overflow: "hidden" }} // Curved edges applied
     >
       {submitted ? (
@@ -144,7 +144,7 @@ const PopUp: React.FC<PopUpProps> = ({ open, onClose }) => {
         </DialogContent>
       ) : (
         <>
-          <DialogTitle>
+           <DialogTitle sx={{ borderRadius: "16px", padding: "16px", color: "white" }}>
             Submit Feedback
             <IconButton
               onClick={onClose}
@@ -163,6 +163,7 @@ const PopUp: React.FC<PopUpProps> = ({ open, onClose }) => {
 
           <DialogContent ref={contentRef}>
             {/* Subject Input */}
+            
             <TextField
               label="Subject"
               fullWidth
@@ -186,37 +187,45 @@ const PopUp: React.FC<PopUpProps> = ({ open, onClose }) => {
             />
 
             {/* File Upload Section */}
+            {/* File Upload Section */}
             <Typography variant="body1" mt={2}>
               Upload:
             </Typography>
-            <Box mt={1} p={2} border="1px solid #ccc">
-              {files.length === 0 ? (
-                <Typography>No files selected</Typography>
-              ) : (
-                files.map((file, index) => (
-                  <Box
-                    key={index}
-                    display="flex"
-                    justifyContent="space-between"
-                    alignItems="center"
-                  >
-                    <Typography>{file.name}</Typography>
-                    <Button
-                      onClick={() => handleRemoveFile(file.name)}
-                      color="error"
-                      size="small"
+
+            {/* Box enclosing Choose File button */}
+            <Box mt={1} p={2} border="1px solid #ccc" borderRadius="16px">
+              <Button sx={buttonStyles} component="label">
+                Choose File
+                <input type="file" hidden onChange={handleFileChange} />
+              </Button>
+
+              {/* Show uploaded file names with Remove button */}
+              {files.length > 0 && (
+                <Box mt={2}>
+                  {files.map((file, index) => (
+                    <Box
+                      key={index}
+                      display="flex"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      mt={1}
+                      p={1}
+                      border="1px solid #ddd"
+                      borderRadius="8px"
                     >
-                      Remove
-                    </Button>
-                  </Box>
-                ))
+                      <Typography>{file.name}</Typography>
+                      <Button
+                        color="error"
+                        size="small"
+                        onClick={() => handleRemoveFile(file.name)}
+                      >
+                        Remove
+                      </Button>
+                    </Box>
+                  ))}
+                </Box>
               )}
             </Box>
-
-            <Button sx={buttonStyles} component="label">
-              Choose File
-              <input type="file" hidden onChange={handleFileChange} />
-            </Button>
 
             {/* Email Follow-up Checkbox */}
             <Box mt={2} display="flex" alignItems="center">
