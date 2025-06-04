@@ -1,3 +1,18 @@
+import FeedbackActivity from "../components/FeedbackActivity";
+        const [isExpanded, setIsExpanded] = useState<boolean>(false);
+        <Box>
+       <div style={{ border: "1px solid #ccc", padding: "10px", width: "400px" }}>
+      <h2 
+        style={{ cursor: "pointer", userSelect: "none" }} 
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        Feedbacks {isExpanded ? "▲" : "▼"}
+      </h2>
+      {isExpanded && <FeedbackActivity />}
+    </div>
+    </Box>
+
+
 import React, { useEffect, useState, useRef } from "react";
 import { Box, Typography, Paper } from "@mui/material";
 
