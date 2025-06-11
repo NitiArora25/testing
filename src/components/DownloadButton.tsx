@@ -1,73 +1,120 @@
-import React from 'react';
+import React, { useState } from "react";
+import DownloadIcon from '@mui/icons-material/Download'; // MUI download icon
+import { IconButton, Tooltip, Box, Typography } from "@mui/material";
+//////////////////////////
+// Store progress as { [id: number]: number }
+const [downloadProgress, setDownloadProgress] = useState<{ [key: number]: number }>({});
+//////////////////////////////////////////
 
-// Define a React functional component for the download button
-const DownloadButton: React.FC = () => {
-  // This function is triggered when the button is clicked
-  const handleDownload = async () => {
-    try {
-      // 1. Make a GET request to your API endpoint which serves the file
-      const response = await fetch('https://your-api.com/download/file', {
-        method: 'GET',
-        headers: {
-          // 2. (Optional) Add any required headers like Authorization here
-        },
-      });
+const downloadFile = async (id: number) => {
+  try {
+    // API endpoint to download file
+    const endpoint = `auth/feedbacks/${id}/file`;
 
-      // 3. Check if the response from server is successful (status code 2xx)
-      if (!response.ok) {
-        // 4. If not, throw an error which will be caught below
-        throw new Error('Network response was not ok');
+    // Create a new XMLHttpRequest to track progress
+    const xhr = new XMLHttpRequest();
+
+    // Open GET request to the endpoint
+    xhr.open('GET', endpoint, true);
+
+    // Set response type to blob for binary data
+    xhr.responseType = 'blob';
+
+    // When progress is received, update the progress state
+    xhr.onprogress = (event) => {
+      if (event.lengthComputable) {
+        // Calculate percentage downloaded
+        const percent = Math.round((event.loaded / event.total) * 100);
+        // Update progress for this ID
+        setDownloadProgress(prev => ({ ...prev, [id]: percent }));
       }
+    };
 
-      // 5. Try to extract the filename from the Content-Disposition header
-      const disposition = response.headers.get('Content-Disposition');
-      let filename = 'downloaded-file'; // Default filename in case header is missing
+    // When download is complete
+    xhr.onload = () => {
+      // Remove progress indicator (set to 0 or undefined)
+      setDownloadProgress(prev => ({ ...prev, [id]: 0 }));
 
-      // 6. If header is present and contains 'filename=', try to extract actual file name
-      if (disposition && disposition.includes('filename=')) {
-        // 7. This regex matches both quoted and unquoted filenames, including UTF-8 encoded ones
-        const match = disposition.match(/filename\*?=([^;]+)/);
-        if (match) {
-          // 8. Remove encoding info (if any), quotes, and decode URI encoding
-          filename = decodeURIComponent(
-            match[1].replace(/UTF-8''/, '').replace(/['"]/g, '').trim()
-          );
+      // Check if request was successful
+      if (xhr.status === 200) {
+        // Get file name from header or use a default name
+        const disposition = xhr.getResponseHeader('content-disposition');
+        let fileName = `file_${id}`;
+        if (disposition && disposition.indexOf('filename=') !== -1) {
+          fileName = disposition.split('filename=')[1].replace(/"/g, '');
         }
+
+        // Create blob URL for the file
+        const url = window.URL.createObjectURL(xhr.response);
+
+        // Create a temporary link to trigger download
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', fileName);
+
+        // Append link to body and trigger click
+        document.body.appendChild(link);
+        link.click();
+
+        // Clean up
+        link.parentNode?.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } else {
+        // Handle non-200 response
+        alert('Failed to download file');
       }
+    };
 
-      // 9. Get the response body as a binary Blob (works for any file type)
-      const blob = await response.blob();
+    // On error, reset progress and alert error
+    xhr.onerror = () => {
+      setDownloadProgress(prev => ({ ...prev, [id]: 0 }));
+      alert('Error downloading file');
+    };
 
-      // 10. Create a temporary object URL for the blob
-      const url = window.URL.createObjectURL(blob);
+    // Send the request
+    xhr.send();
 
-      // 11. Create a temporary anchor (<a>) element
-      const link = document.createElement('a');
-      // 12. Set the href to the blob URL
-      link.href = url;
-      // 13. Set the download attribute to specify the file name
-      link.setAttribute('download', filename);
-      // 14. Add the link to the document (required for some browsers)
-      document.body.appendChild(link);
-      // 15. Programmatically click the link to trigger download
-      link.click();
-      // 16. Remove the link from the document after download starts
-      document.body.removeChild(link);
-      // 17. Release the object URL to free memory
-      window.URL.revokeObjectURL(url);
-
-    } catch (error) {
-      // 18. If any errors occur, show an alert to the user
-      alert('Download failed: ' + (error as Error).message);
-    }
-  };
-
-  // Render a button that triggers handleDownload when clicked
-  return (
-    <button onClick={handleDownload}>
-      Download
-    </button>
-  );
+    // Set initial progress to 1% to show user that download has started
+    setDownloadProgress(prev => ({ ...prev, [id]: 1 }));
+  } catch (error) {
+    // Reset progress and show error message
+    setDownloadProgress(prev => ({ ...prev, [id]: 0 }));
+    alert('Error: ' + error);
+  }
 };
 
-export default DownloadButton;
+
+///////////////////////////////////////////////////////
+
+const columns: GridColDef[] = [
+  // ... other columns
+  {
+    field: 'attach',
+    headerName: 'Attach',
+    width: 130,
+    flex: 1,
+    renderCell: (params) => (
+      <Box display="flex" alignItems="center">
+        <Tooltip title="Download Attachment">
+          <span>
+            <IconButton
+              color="primary"
+              // Disable button if download is already in progress (100% not reached)
+              disabled={downloadProgress[params.row.id] && downloadProgress[params.row.id] < 100}
+              onClick={() => downloadFile(params.row.id)}
+            >
+              <DownloadIcon />
+            </IconButton>
+          </span>
+        </Tooltip>
+        {/* Show download progress percentage if downloading */}
+        {downloadProgress[params.row.id] && downloadProgress[params.row.id] > 0 && downloadProgress[params.row.id] < 100 && (
+          <Typography variant="caption" sx={{ ml: 1 }}>
+            {downloadProgress[params.row.id]}%
+          </Typography>
+        )}
+      </Box>
+    ),
+  },
+  // ... other columns
+];
